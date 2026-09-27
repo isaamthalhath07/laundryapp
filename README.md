@@ -50,14 +50,16 @@ written in has no Android SDK, so the APK is produced by CI rather than committe
 
 - *Any push:* open the **Actions** tab → latest *Build Android APK* run → **Artifacts** →
   `laundry-tally-apk`.
-- *A proper download link:* push a tag and the same workflow attaches `laundry-tally.apk`
-  to a GitHub release, which gives a permanent, one-tap download URL:
+- *A proper download link:* a release gives a permanent, one-tap download URL at
+  `https://github.com/isaamthalhath07/laundryapp/releases/latest`. Either push a tag:
 
   ```bash
   git tag v1.0 && git push origin v1.0
   ```
 
-  The release page is then at `https://github.com/isaamthalhath07/laundryapp/releases/latest`.
+  or run the workflow by hand — **Actions → Build Android APK → Run workflow** — and fill in
+  **release_tag** (for example `v1.0`). The workflow then creates that tag and release itself
+  and attaches the APK.
 
 **Installing it:** open the downloaded `laundry-tally.apk` on the phone and allow
 *Install unknown apps* for your browser or file manager when Android asks. The APK is signed
