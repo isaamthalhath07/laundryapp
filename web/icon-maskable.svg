@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Laundry Tally">
+  <rect width="512" height="512" fill="#0f766e"/><g transform="translate(256 256) scale(0.68) translate(-256 -256)">
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="116" y="128" width="280" height="256" rx="26"/>
+    <path d="M116 190h280"/>
+    <circle cx="256" cy="292" r="76"/>
+    <path d="M206 294q25-24 50 0t50 0"/>
+  </g>
+  <circle cx="158" cy="159" r="11" fill="#ffffff"/>
+  <circle cx="200" cy="159" r="11" fill="#ffffff"/>
+</g></svg>
