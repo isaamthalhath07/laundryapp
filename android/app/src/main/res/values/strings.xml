@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Laundry Tally</string>
+    <string name="note_hint">Bag label / name (optional)</string>
+    <string name="reset">Reset</string>
+    <string name="share">Share list</string>
+    <string name="items_total">items for laundry</string>
+    <string name="item_total">item for laundry</string>
+    <string name="saved_hint">Counts are saved on this device automatically.</string>
+    <string name="clear_title">Clear all counts?</string>
+    <string name="clear_message">This resets every item to zero.</string>
+    <string name="clear_confirm">Clear</string>
+    <string name="cancel">Cancel</string>
+    <string name="nothing_to_reset">Nothing to reset</string>
+    <string name="cleared">Cleared</string>
+    <string name="share_title">Laundry list</string>
+    <string name="set_count">Set count</string>
+    <string name="ok">OK</string>
+    <string name="add_one">Add one</string>
+    <string name="remove_one">Remove one</string>
+</resources>

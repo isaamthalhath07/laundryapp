@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laundry Tally</title>
+<meta name="description" content="Count the clothes you send for laundry and get the total.">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --ink: #10231f;
+    --muted: #5d6f6b;
+    --line: #dbe3e1;
+    --brand: #0f766e;
+    --brand-ink: #ffffff;
+    --danger: #b3261e;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1513;
+      --card: #16201e;
+      --ink: #e8efed;
+      --muted: #9fb0ac;
+      --line: #2a3835;
+      --brand: #2dd4bf;
+      --brand-ink: #06231f;
+      --danger: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding-bottom: 104px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--brand); color: var(--brand-ink);
+    padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+  }
+  .title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .date { font-size: 13px; opacity: .9; }
+  .note {
+    margin-top: 12px; width: 100%; padding: 10px 12px;
+    border: 0; border-radius: 10px; font-size: 15px;
+    background: rgba(255,255,255,.16); color: var(--brand-ink);
+  }
+  .note::placeholder { color: var(--brand-ink); opacity: .7; }
+  main { padding: 16px 16px 8px; max-width: 640px; margin: 0 auto; }
+  h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .10em;
+    color: var(--muted); margin: 22px 4px 8px;
+  }
+  h2:first-of-type { margin-top: 4px; }
+  .group { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .row.on { background: color-mix(in srgb, var(--brand) 9%, transparent); }
+  .name { flex: 1; min-width: 0; font-size: 16px; }
+  .name small { display: block; color: var(--muted); font-size: 12px; }
+  button {
+    font: inherit; cursor: pointer; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  }
+  .step {
+    width: 44px; height: 44px; font-size: 22px; line-height: 1;
+    display: grid; place-items: center; flex: none;
+  }
+  .step:active { transform: scale(.94); }
+  .plus { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+  .count {
+    width: 56px; height: 44px; flex: none; text-align: center;
+    font-size: 18px; font-variant-numeric: tabular-nums;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: transparent; color: var(--ink);
+    -moz-appearance: textfield;
+  }
+  .count::-webkit-outer-spin-button, .count::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  footer {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+    background: var(--card); border-top: 1px solid var(--line);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .bar { max-width: 640px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+  .total { flex: 1; min-width: 0; }
+  .total b { display: block; font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .total span { font-size: 12px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; }
+  .actions button { height: 44px; padding: 0 14px; }
+  .actions .primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); font-weight: 600; }
+  .reset { color: var(--danger); }
+  #install { display: none; }
+  .toast {
+    position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px;
+    font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 9;
+  }
+  .toast.show { opacity: 1; }
+  .tip { text-align: center; color: var(--muted); font-size: 12px; padding: 14px 8px 4px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title">
+    <h1>Laundry Tally</h1>
+    <span class="date" id="today"></span>
+  </div>
+  <input class="note" id="note" placeholder="Bag label / name (optional)" autocomplete="off">
+</header>
+
+<main id="list"></main>
+<p class="tip">Counts are saved on this device automatically.</p>
+
+<footer>
+  <div class="bar">
+    <div class="total">
+      <b id="total">0</b>
+      <span id="totalLabel">items for laundry</span>
+    </div>
+    <div class="actions">
+      <button id="install" type="button">Install</button>
+      <button id="reset" type="button" class="reset">Reset</button>
+      <button id="share" type="button" class="primary">Share list</button>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var ITEMS = [
+    { group: "Upper wear",     items: [
+      { id: "shirt",   name: "Shirt" },
+      { id: "tshirt",  name: "T-shirt" },
+      { id: "blazer",  name: "Blazer" },
+      { id: "suit",    name: "Suit", hint: "Counted as 1 item per suit" }
+    ]},
+    { group: "Lower wear",     items: [
+      { id: "pants",   name: "Pants" },
+      { id: "jeans",   name: "Jeans" }
+    ]},
+    { group: "Night wear",     items: [
+      { id: "pyjama",  name: "Pyjama" }
+    ]},
+    { group: "Innerwear",      items: [
+      { id: "underwear", name: "Underwear" },
+      { id: "vest",      name: "Vest" },
+      { id: "socks",     name: "Socks", hint: "Count each pair as 1" }
+    ]},
+    { group: "Bath & bedding", items: [
+      { id: "towel",       name: "Towel" },
+      { id: "bedsheet",    name: "Bedsheet" },
+      { id: "pillowcover", name: "Pillow cover" },
+      { id: "blanket",     name: "Blanket" }
+    ]}
+  ];
+
+  var STORE = "laundry-tally-v1";
+  var MAX = 999;
+  var counts = {};
+  var note = "";
+  var inputs = {};
+  var rows = {};
+
+  var flat = [];
+  ITEMS.forEach(function (g) { g.items.forEach(function (it) { flat.push(it); }); });
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (saved && typeof saved === "object") {
+        note = typeof saved.note === "string" ? saved.note : "";
+        var c = saved.counts || {};
+        flat.forEach(function (it) {
+          var n = parseInt(c[it.id], 10);
+          counts[it.id] = isFinite(n) && n > 0 ? Math.min(n, MAX) : 0;
+        });
+      }
+    } catch (e) { /* storage unavailable or corrupt: start empty */ }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORE, JSON.stringify({ counts: counts, note: note }));
+    } catch (e) { /* ignore: the tally still works for this session */ }
+  }
+
+  function total() {
+    var t = 0;
+    flat.forEach(function (it) { t += counts[it.id] || 0; });
+    return t;
+  }
+
+  function set(id, value) {
+    var n = parseInt(value, 10);
+    if (!isFinite(n) || n < 0) n = 0;
+    if (n > MAX) n = MAX;
+    counts[id] = n;
+    inputs[id].value = n ? String(n) : "0";
+    rows[id].classList.toggle("on", n > 0);
+    paintTotal();
+    save();
+  }
+
+  function paintTotal() {
+    var t = total();
+    document.getElementById("total").textContent = String(t);
+    document.getElementById("totalLabel").textContent =
+      t === 1 ? "item for laundry" : "items for laundry";
+  }
+
+  function build() {
+    var main = document.getElementById("list");
+    ITEMS.forEach(function (g) {
+      var h = document.createElement("h2");
+      h.textContent = g.group;
+      main.appendChild(h);
+
+      var box = document.createElement("div");
+      box.className = "group";
+
+      g.items.forEach(function (it) {
+        var row = document.createElement("div");
+        row.className = "row";
+
+        var name = document.createElement("div");
+        name.className = "name";
+        name.textContent = it.name;
+        if (it.hint) {
+          var small = document.createElement("small");
+          small.textContent = it.hint;
+          name.appendChild(small);
+        }
+
+        var minus = document.createElement("button");
+        minus.type = "button";
+        minus.className = "step";
+        minus.textContent = "−";
+        minus.setAttribute("aria-label", "Remove one " + it.name);
+        minus.addEventListener("click", function () { set(it.id, (counts[it.id] || 0) - 1); });
+
+        var box2 = document.createElement("input");
+        box2.className = "count";
+        box2.type = "number";
+        box2.inputMode = "numeric";
+        box2.min = "0";
+        box2.max = String(MAX);
+        box2.value = "0";
+        box2.setAttribute("aria-label", it.name + " count");
+        box2.addEventListener("focus", function () { box2.select(); });
+        box2.addEventListener("input", function () {
+          var n = parseInt(box2.value, 10);
+          counts[it.id] = isFinite(n) && n > 0 ? Math.min(n, MAX) : 0;
+          rows[it.id].classList.toggle("on", counts[it.id] > 0);
+          paintTotal();
+          save();
+        });
+        box2.addEventListener("blur", function () { set(it.id, box2.value); });
+
+        var plus = document.createElement("button");
+        plus.type = "button";
+        plus.className = "step plus";
+        plus.textContent = "+";
+        plus.setAttribute("aria-label", "Add one " + it.name);
+        plus.addEventListener("click", function () { set(it.id, (counts[it.id] || 0) + 1); });
+
+        row.appendChild(name);
+        row.appendChild(minus);
+        row.appendChild(box2);
+        row.appendChild(plus);
+        box.appendChild(row);
+
+        inputs[it.id] = box2;
+        rows[it.id] = row;
+      });
+
+      main.appendChild(box);
+    });
+  }
+
+  function summary() {
+    var lines = [];
+    var label = note.trim();
+    lines.push("Laundry list" + (label ? " - " + label : ""));
+    lines.push(new Date().toLocaleDateString());
+    lines.push("");
+    flat.forEach(function (it) {
+      var n = counts[it.id] || 0;
+      if (n > 0) lines.push(it.name + ": " + n);
+    });
+    var t = total();
+    if (t === 0) lines.push("(no items counted yet)");
+    lines.push("");
+    lines.push("Total items: " + t);
+    return lines.join("\n");
+  }
+
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toast.t);
+    toast.t = setTimeout(function () { el.classList.remove("show"); }, 1800);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { toast("List copied"); },
+        function () { toast("Could not copy"); }
+      );
+      return;
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); toast("List copied"); }
+    catch (e) { toast("Could not copy"); }
+    document.body.removeChild(ta);
+  }
+
+  load();
+  build();
+  flat.forEach(function (it) { set(it.id, counts[it.id] || 0); });
+
+  document.getElementById("today").textContent =
+    new Date().toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+
+  var noteEl = document.getElementById("note");
+  noteEl.value = note;
+  noteEl.addEventListener("input", function () { note = noteEl.value; save(); });
+
+  document.getElementById("share").addEventListener("click", function () {
+    var text = summary();
+    if (navigator.share) {
+      navigator.share({ title: "Laundry list", text: text }).catch(function () { /* cancelled */ });
+    } else {
+      copyText(text);
+    }
+  });
+
+  document.getElementById("reset").addEventListener("click", function () {
+    if (total() === 0 && !note.trim()) { toast("Nothing to reset"); return; }
+    if (!confirm("Clear all counts?")) return;
+    flat.forEach(function (it) { set(it.id, 0); });
+    note = "";
+    noteEl.value = "";
+    save();
+    toast("Cleared");
+  });
+
+  var installBtn = document.getElementById("install");
+  var deferred = null;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferred = e;
+    installBtn.style.display = "block";
+  });
+  installBtn.addEventListener("click", function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred = null;
+    installBtn.style.display = "none";
+  });
+  window.addEventListener("appinstalled", function () { installBtn.style.display = "none"; });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* offline mode unavailable */ });
+    });
+  }
+})();
+</script>
+</body>
+</html>
